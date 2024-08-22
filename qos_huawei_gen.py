@@ -12,39 +12,34 @@ def calculate_network_param(net):
 
 def calculate_ratelimit_param(rate_value):
     cir_value = int(rate_value) * 1024
-    pir_value = int(cir_value * 1.2)
+    pir_value = int(cir_value * 1)
     return cir_value, pir_value, rate_value
 
 def generate_template(**kwargs):
     config_template = '''
-    traffic behavior CIR{behaviorname}Mbps
+    traffic behavior CIR{behaviorname}M
      permit
      car cir {cir} pir {pir}
     #
-    acl name {abonentname}_IN
+    acl name TO_{abonentname} advance
      rule 10 permit ip destination {network} {wildcard}
-    acl name {abonentname}_OUT
+    acl name FROM_{abonentname} advance
      rule 10 permit ip source {network} {wildcard}
     #
     #
-    traffic classifier {abonentname}_IN
-     if-match acl {abonentname}_IN
+    traffic classifier TO_{abonentname}
+     if-match acl TO_{abonentname}
     #
-    traffic classifier {abonentname}_OUT
-     if-match acl {abonentname}_OUT
+    traffic classifier FROM_{abonentname}
+     if-match acl FROM_{abonentname}
     #
-    #
-    traffic policy RATELIMIT_FROM_RESIDENTS match-order config
-     classifier {abonentname}_OUT behavior CIR{behaviorname}Mbps
     #
     traffic policy RATELIMIT_TO_RESIDENTS match-order config
-     classifier {abonentname}_IN behavior CIR{behaviorname}Mbps
+     classifier TO_{abonentname} behavior CIR{behaviorname}M
+    #
+    traffic policy RATELIMIT_FROM_RESIDENTS match-order config
+     classifier FROM_{abonentname} behavior CIR{behaviorname}M
     '''
-
-    kwargs.setdefault('network', '10.1.1.0')
-    kwargs.setdefault('wildcard', '0.0.0.0')
-    kwargs.setdefault('cir', '100')
-    kwargs.setdefault('pir', '100')
 
     return config_template.format(**kwargs)
 
